@@ -47,6 +47,7 @@ func decryptor() {
 	window := wui.NewDialogWindow()
 	window.SetClientSize(700, 220)
 	window.SetTitle(`"` + gameTitle + `"` + " Log File Decryptor")
+	window.SetIconFromMem(decryptIcon)
 
 	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
 	if err == nil {
@@ -94,7 +95,7 @@ func decryptor() {
 
 	ok := wui.NewButton()
 	ok.SetText("OK")
-	ok.SetSize(80, 30)
+	ok.SetSize(80, 25)
 	ok.SetPos(
 		(window.ClientWidth()-ok.Width())/2,
 		window.ClientHeight()-10-ok.Height(),
