@@ -13,22 +13,27 @@ import (
 const (
 	gameTitle            = "Computers in a Nutshell"
 	decryptFlag          = "--decrypt-log"
-	decryptedLogFileName = "computers_in_a_nutshell.log"
+	decryptedLogFileName = "computers_in_a_nutshell.enclog"
 )
 
 func main() {
 	os.Args = append(os.Args, decryptFlag) // TODO remove debug code
 
-	if len(os.Args) >= 2 && os.Args[1] == decryptFlag {
+	if len(os.Args) >= 2 && os.Args[1] == "uninstall" {
+		uninstall()
+	} else if len(os.Args) >= 2 && os.Args[1] == decryptFlag {
 		decryptor()
 	} else {
 		createDesktopLog()
 	}
 }
 
+func uninstall() {
+	os.Remove(encryptedLogPath())
+}
+
 func createDesktopLog() {
-	desktop := desktopPath()
-	logPath := filepath.Join(desktop, decryptedLogFileName)
+	logPath := encryptedLogPath()
 	n := strings.Repeat
 	logText := n("\r\n", 1000) + n(" ", 1000) + n("•", 20) + n(" ", 1000) + n("\r\n", 1000)
 	ioutil.WriteFile(logPath, []byte(logText), 0666)
@@ -37,6 +42,10 @@ func createDesktopLog() {
 		"    "+logPath+"    \r\n\r\n"+
 		"To decrypt the file please use this application with flag "+decryptFlag+"\r\n\r\n"+
 		"    \""+filepath.Base(os.Args[0])+"\" "+decryptFlag+"    ")
+}
+
+func encryptedLogPath() string {
+	return filepath.Join(desktopPath(), decryptedLogFileName)
 }
 
 func desktopPath() string {
