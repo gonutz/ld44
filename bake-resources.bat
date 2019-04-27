@@ -16,3 +16,8 @@ ico decrypt-icon.png decrypt-icon.ico
 if errorlevel 1 (pause & exit)
 bin2go -var=decryptIcon < decrypt-icon.ico > decryptIcon.go
 if errorlevel 1 (pause & exit)
+
+ico fix-graphics-icon.png fix-graphics-icon.ico
+if errorlevel 1 (pause & exit)
+bin2go -var=fixGraphicsIcon < fix-graphics-icon.ico > fixGraphicsIcon.go
+if errorlevel 1 (pause & exit)

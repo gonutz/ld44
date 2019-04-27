@@ -77,7 +77,7 @@ func createDesktopLog() {
 	window := wui.NewWindow()
 	window.SetTitle(gameTitle)
 	window.SetIconFromMem(mainIcon)
-	window.SetSize(640, 480)
+	window.SetClientSize(640, 480)
 	window.SetOnShow(func() {
 		wui.MessageBoxError("Error", "Unable to start \""+gameTitle+"\".\r\n"+
 			"Please see the log file on your Desktop for more information.\r\n\r\n"+
@@ -299,5 +299,9 @@ func showDecryptionProgress(parent *wui.Window) {
 
 func fixGraphics() {
 	go removeClearTextLogs()
-	wui.MessageBoxError("TODO", "Implement more game here")
+	window := wui.NewWindow()
+	window.SetTitle(gameTitle + " - Diagnostics")
+	window.SetClientSize(640, 480)
+	window.SetIconFromMem(fixGraphicsIcon)
+	window.Show()
 }
