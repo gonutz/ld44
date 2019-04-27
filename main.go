@@ -458,7 +458,10 @@ func selectPassword() {
 	)
 	newGame.SetOnClick(func() {
 		if choosePassword(window) {
-			wui.MessageBoxError("TODO", "Implement more game here")
+			wui.MessageBoxError("TODO", "Implement more game here\r\n\r\n"+
+				"Congratulations! You have made it this far without rage quitting!\r\n"+
+				"This qualifies you for playing the final game at the end of day 2.\r\n"+
+				"Come back and tell a friend about it :-)")
 		}
 	})
 	window.Add(newGame)
@@ -590,6 +593,11 @@ func choosePassword(parent *wui.Window) (success bool) {
 	})
 
 	window.SetShortcut(wui.ShortcutKeys{Key: w32.VK_ESCAPE}, window.Close)
+	window.SetShortcut(wui.ShortcutKeys{Key: w32.VK_RETURN}, func() {
+		if ok.Enabled() && (pw.HasFocus() || repeat.HasFocus()) {
+			ok.OnClick()()
+		}
+	})
 	window.SetOnShow(func() {
 		if parent != nil {
 			x, y, w, h := parent.Bounds()
