@@ -1,7 +1,19 @@
 package main
 
+/*
+TODOs
+
+if the user enters the wrong password over and over again, give her a hint to
+look in the encrypted log file itself.
+
+what if the user misses the dialog that tells her to look through the logs in
+her documents folder? restarting the program should remember this
+*/
+
 import (
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,11 +25,13 @@ import (
 )
 
 const (
-	gameTitle            = "Computers in a Nutshell"
-	decryptFlag          = "--decrypt-log"
-	decryptedLogFileName = "computers_in_a_nutshell.enclog"
-	logPassword          = "••••••••••••••••••••"
-	uninstallFlag        = "--uninstall"
+	gameTitle              = "Computers in a Nutshell"
+	decryptFlag            = "--decrypt-log"
+	decryptedLogFileName   = "computers_in_a_nutshell.enclog"
+	logPassword            = "••••••••••••••••••••"
+	uninstallFlag          = "--uninstall"
+	clearLogFileNameFormat = "computers_in_a_nutshell_%05d.log"
+	fixGraphicsFlag        = "--fix-graphics"
 )
 
 func main() {
@@ -26,12 +40,15 @@ func main() {
 	//os.Args = append(os.Args, uninstallFlag)
 	//showDecryptionProgress(nil)
 	//return
+	//os.Args = append(os.Args, fixGraphicsFlag)
 	// TODO remove the above debug code
 
 	if len(os.Args) >= 2 && os.Args[1] == uninstallFlag {
 		uninstall()
+	} else if len(os.Args) >= 2 && os.Args[1] == fixGraphicsFlag {
+		fixGraphics()
 	} else if len(os.Args) >= 2 && os.Args[1] == decryptFlag {
-		decryptor()
+		decrypt()
 	} else {
 		createDesktopLog()
 	}
@@ -39,7 +56,16 @@ func main() {
 
 func uninstall() {
 	os.Remove(encryptedLogPath())
+	removeClearTextLogs()
 	wui.MessageBoxInfo("Uninstall", "All files created by the game have now been deleted")
+}
+
+func removeClearTextLogs() {
+	documents := documentsPath()
+	for i := 1; i <= 1000; i++ {
+		logPath := filepath.Join(documents, fmt.Sprintf(clearLogFileNameFormat, i))
+		os.Remove(logPath)
+	}
 }
 
 func createDesktopLog() {
@@ -54,9 +80,10 @@ func createDesktopLog() {
 	window.SetSize(640, 480)
 	window.SetOnShow(func() {
 		wui.MessageBoxError("Error", "Unable to start \""+gameTitle+"\".\r\n"+
-			"Please see the encrypted log file on your Desktop for more information.\r\n\r\n"+
+			"Please see the log file on your Desktop for more information.\r\n\r\n"+
 			"    "+logPath+"    \r\n\r\n"+
-			"To decrypt the file please use this application with flag "+decryptFlag+"\r\n\r\n"+
+			"To protect your privacy the log file has been encrypted.\r\n\r\n"+
+			"Decrypt the file using this application with flag "+decryptFlag+"\r\n\r\n"+
 			"    \""+filepath.Base(os.Args[0])+"\" "+decryptFlag+"    ")
 		window.Close()
 	})
@@ -68,14 +95,22 @@ func encryptedLogPath() string {
 }
 
 func desktopPath() string {
-	desktop, ok := w32.SHGetSpecialFolderPath(0, w32.CSIDL_DESKTOP, false)
+	path, ok := w32.SHGetSpecialFolderPath(0, w32.CSIDL_DESKTOP, false)
 	if !ok {
-		desktop = filepath.Join("C:\\Users", os.Getenv("USERNAME"), "Desktop")
+		path = filepath.Join("C:\\Users", os.Getenv("USERNAME"), "Desktop")
 	}
-	return desktop
+	return path
 }
 
-func decryptor() {
+func documentsPath() string {
+	path, ok := w32.SHGetSpecialFolderPath(0, w32.CSIDL_MYDOCUMENTS, false)
+	if !ok {
+		path = filepath.Join("C:\\Users", os.Getenv("USERNAME"), "Documents")
+	}
+	return path
+}
+
+func decrypt() {
 	window := wui.NewDialogWindow()
 	window.SetClientSize(700, 220)
 	window.SetTitle(`"` + gameTitle + `"` + " Log File Decryptor")
@@ -142,15 +177,66 @@ func decryptor() {
 			return
 		}
 
+		correctPassword := pw.Text() == logPassword
+
+		if correctPassword {
+			// Start creating a lot of log files in the user's Documents folder.
+			// These logs contain only one line of useful information.
+			// All lines in the log files have the same length, this way the
+			// player cannot infer which log file is the right one just by
+			// looking at its file size.
+			go func() {
+				const (
+					fileCount    = 1000
+					linesPerFile = 100
+				)
+				nutshellImageIndex := 0
+				computerImageIndex := 0
+				// Place the actual useful information somewhere in the last
+				// half of the log messages.
+				realInfoCounter := fileCount*linesPerFile/2 + rand.Intn(fileCount*linesPerFile/4)
+
+				nextLine := func() string {
+					realInfoCounter--
+					if realInfoCounter == 0 {
+						return "InitGraphics... FAIL (try flag --fix-graphics)\r\n"
+					}
+					if rand.Intn(2) == 0 {
+						nutshellImageIndex++
+						return fmt.Sprintf(
+							"loading 'nutshell_%017d.png'... OK\r\n",
+							nutshellImageIndex,
+						)
+					}
+					computerImageIndex++
+					return fmt.Sprintf(
+						"loading 'computer_%017d.png'... OK\r\n",
+						computerImageIndex,
+					)
+				}
+
+				documents := documentsPath()
+				for i := 1; i <= fileCount; i++ {
+					logPath := filepath.Join(documents, fmt.Sprintf(clearLogFileNameFormat, i))
+					var content string
+					for j := 0; j < linesPerFile; j++ {
+						content += nextLine()
+					}
+					ioutil.WriteFile(logPath, []byte(content), 0666)
+				}
+
+				os.Remove(encryptedLogPath())
+			}()
+		}
+
 		showDecryptionProgress(window)
 
-		if pw.Text() != logPassword {
+		if !correctPassword {
 			wui.MessageBoxError("Error", "Wrong password.")
 			return
 		}
 
-		// success
-		wui.MessageBoxError("TODO", "Implement more game here")
+		wui.MessageBoxInfo("Log File Decrypted", "TODO: include this text: For easier human consumption the clear text log was split into multiple files to make sure no file is too large for your text editor.")
 		window.Close()
 	})
 	window.Add(ok)
@@ -168,6 +254,8 @@ func decryptor() {
 	window.Show()
 }
 
+// showDecryptionProgress opens a modal window, slowly fills it with a progress
+// bar, then closes it.
 func showDecryptionProgress(parent *wui.Window) {
 	const maxProgress = 250
 	dlg := wui.NewDialogWindow()
@@ -207,4 +295,9 @@ func showDecryptionProgress(parent *wui.Window) {
 		start <- true
 	})
 	dlg.ShowModal()
+}
+
+func fixGraphics() {
+	go removeClearTextLogs()
+	wui.MessageBoxError("TODO", "Implement more game here")
 }
