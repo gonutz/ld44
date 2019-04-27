@@ -14,12 +14,15 @@ const (
 	gameTitle            = "Computers in a Nutshell"
 	decryptFlag          = "--decrypt-log"
 	decryptedLogFileName = "computers_in_a_nutshell.enclog"
+	logPassword          = "••••••••••••••••••••"
+	uninstallFlag        = "--uninstall"
 )
 
 func main() {
-	os.Args = append(os.Args, decryptFlag) // TODO remove debug code
+	//os.Args = append(os.Args, decryptFlag) // TODO remove debug code
+	//os.Args = append(os.Args, uninstallFlag) // TODO remove debug code
 
-	if len(os.Args) >= 2 && os.Args[1] == "uninstall" {
+	if len(os.Args) >= 2 && os.Args[1] == uninstallFlag {
 		uninstall()
 	} else if len(os.Args) >= 2 && os.Args[1] == decryptFlag {
 		decryptor()
@@ -30,12 +33,13 @@ func main() {
 
 func uninstall() {
 	os.Remove(encryptedLogPath())
+	wui.MessageBoxInfo("Uninstall", "All files created by the game have now been deleted")
 }
 
 func createDesktopLog() {
 	logPath := encryptedLogPath()
 	n := strings.Repeat
-	logText := n("\r\n", 1000) + n(" ", 1000) + n("•", 20) + n(" ", 1000) + n("\r\n", 1000)
+	logText := n("\r\n", 1000) + n(" ", 1000) + logPassword + n(" ", 1000) + n("\r\n", 1000)
 	ioutil.WriteFile(logPath, []byte(logText), 0666)
 	wui.MessageBoxError("Error", "Unable to start \""+gameTitle+"\".\r\n"+
 		"Please see the encrypted log file on your Desktop for more information.\r\n\r\n"+
