@@ -10,12 +10,16 @@ import (
 	"github.com/gonutz/wui"
 )
 
-const gameTitle = "Computers in a Nutshell"
+const (
+	gameTitle            = "Computers in a Nutshell"
+	decryptFlag          = "--decrypt-log"
+	decryptedLogFileName = "computers_in_a_nutshell.log"
+)
 
 func main() {
-	os.Args = append(os.Args, "--decrypt-log") // TODO remove debug code
+	os.Args = append(os.Args, decryptFlag) // TODO remove debug code
 
-	if len(os.Args) >= 2 && os.Args[1] == "--decrypt-log" {
+	if len(os.Args) >= 2 && os.Args[1] == decryptFlag {
 		decryptor()
 	} else {
 		createDesktopLog()
@@ -24,15 +28,15 @@ func main() {
 
 func createDesktopLog() {
 	desktop := desktopPath()
-	logPath := filepath.Join(desktop, "computers_in_a_nutshell.log")
+	logPath := filepath.Join(desktop, decryptedLogFileName)
 	n := strings.Repeat
 	logText := n("\r\n", 1000) + n(" ", 1000) + n("•", 20) + n(" ", 1000) + n("\r\n", 1000)
 	ioutil.WriteFile(logPath, []byte(logText), 0666)
 	wui.MessageBoxError("Error", "Unable to start \""+gameTitle+"\".\r\n"+
 		"Please see the encrypted log file on your Desktop for more information.\r\n\r\n"+
 		"    "+logPath+"    \r\n\r\n"+
-		"To decrypt the file please use this application with flag --decrypt-log\r\n\r\n"+
-		"    \""+filepath.Base(os.Args[0])+"\" --decrypt-log    ")
+		"To decrypt the file please use this application with flag "+decryptFlag+"\r\n\r\n"+
+		"    \""+filepath.Base(os.Args[0])+"\" "+decryptFlag+"    ")
 }
 
 func desktopPath() string {
@@ -74,7 +78,8 @@ func decryptor() {
 
 	selectLog.SetOnClick(func() {
 		open := wui.NewFileOpenDialog()
-		open.AddFilter(gameTitle+" Log File", ".log")
+		ext := filepath.Ext(decryptedLogFileName)
+		open.AddFilter(gameTitle+" Log File", ext)
 		open.SetTitle("Select Encrypted Log File")
 		open.SetInitialPath(desktopPath())
 		if ok, path := open.ExecuteSingleSelection(window); ok {
