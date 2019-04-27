@@ -260,12 +260,13 @@ func decrypt() {
 			return
 		}
 
-		wui.MessageBoxInfo("Log File Decrypted", "The log file was decrypted successfully.\r\n\r\n"+
-			"For easier human consumption the clear text log was split into "+
-			"multiple files to make sure no file is too large for viewing in a"+
-			" text editor.\r\n\r\n"+
-			"You can find all log files in your Documents folder:\r\n\r\n"+
-			"    "+documentsPath()+"    ")
+		wui.MessageBoxInfo("Log File Decrypted",
+			"The log file was decrypted successfully.\r\n\r\n"+
+				"For easier human consumption the clear text log was split into "+
+				"multiple files to make sure no file is too large for viewing in a"+
+				" text editor.\r\n\r\n"+
+				"You can find all log files in your Documents folder:\r\n\r\n"+
+				"    "+documentsPath()+"    ")
 		window.Close()
 	})
 	window.Add(ok)
@@ -407,16 +408,20 @@ func fixGraphics() {
 		p.Paint()
 		if correct {
 			if len(lightColors) == 1 {
-				wui.MessageBoxInfo("Success", "The following gamma settings were detected:\r\n\r\n"+
-					"    "+gammaValues+"    \r\n\r\n"+
-					"Please restart the game with these parameters:\r\n\r\n"+
-					"    \""+filepath.Base(os.Args[0])+"\" "+gammaFlag+"    ")
+				wui.MessageBoxInfo("Success",
+					"The following gamma settings were detected:\r\n\r\n"+
+						"    "+gammaValues+"    \r\n\r\n"+
+						"Please restart the game with these parameters:\r\n\r\n"+
+						"    \""+filepath.Base(os.Args[0])+"\" "+gammaFlag+"    ")
 				window.Close()
 				return
 			}
 			lightColors = lightColors[1:]
 		} else {
-			wui.MessageBoxError("Error", "Inconsistent gamma settings detected, please repeat the last step.")
+			wui.MessageBoxError(
+				"Error",
+				"Inconsistent gamma settings detected, please repeat the last step.",
+			)
 		}
 	})
 
@@ -461,7 +466,9 @@ func selectPassword() {
 		window.ClientHeight()/2-newGame.Height()-10,
 	)
 	newGame.SetOnClick(func() {
-		choosePassword(window)
+		if choosePassword(window) {
+			wui.MessageBoxError("TODO", "Implement more game here")
+		}
 	})
 	window.Add(newGame)
 
@@ -480,7 +487,7 @@ func selectPassword() {
 	window.Show()
 }
 
-func choosePassword(parent *wui.Window) {
+func choosePassword(parent *wui.Window) (success bool) {
 	window := wui.NewDialogWindow()
 	window.SetTitle("New Game")
 	window.SetClientSize(520, 250)
@@ -564,21 +571,18 @@ func choosePassword(parent *wui.Window) {
 		s := computePasswordStrength(pw.Text())
 		if s != medium {
 			wui.MessageBoxError("Illegal Password", "Studies have shown that "+
-				"forcing people to use very complicated passwords results in "+
-				"these people writing their passwords down on paper. This "+
-				"allows spies to read this security-critical information by "+
-				"breaking in people's homes or stealing their wallets.\r\n\r\n"+
-				"Thus we encourage you to rather use a medium strength password"+
-				" instead and keep it in your head rather than on paper.")
+				"complicated passwords are often written down on paper. This "+
+				"presents a large security vulnerability. We thus encourage "+
+				"you to rather use a medium strength password instead and keep "+
+				"it in your head rather than on paper.")
 			return
 		}
 
 		d := editDistance(pw.Text(), repeat.Text())
 		if d == 0 {
-			wui.MessageBoxError("Illegal Password", "The password you have entered "+
-				"in the second edit box is already in use by another edit box "+
-				"in the system.\r\n\r\n"+
-				"Please change the password in the second edit box.")
+			wui.MessageBoxError("Illegal Password", "The password you have "+
+				"entered in the bottom edit box is already in use by another "+
+				"edit box in the system.")
 			return
 		}
 		if d >= 2 {
@@ -590,7 +594,7 @@ func choosePassword(parent *wui.Window) {
 		}
 
 		// at this point we accept the password
-		wui.MessageBoxError("TODO", "Implement more game here")
+		success = true
 		window.Close()
 	})
 
@@ -605,6 +609,8 @@ func choosePassword(parent *wui.Window) {
 	})
 
 	window.ShowModal()
+
+	return success
 }
 
 type passwordStrength int
