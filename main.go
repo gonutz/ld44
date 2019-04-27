@@ -665,43 +665,33 @@ func computePasswordStrength(pw string) passwordStrength {
 }
 
 // editDistance returns the Levenshtein distance between s1 and s2.
-// https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm
-// TODO find out why the tests fail
+// http://www.golangprograms.com/golang-program-for-implementation-of-levenshtein-distance.html
 func editDistance(s1, s2 string) int {
 	a := []rune(s1)
 	b := []rune(s2)
 	m := len(a)
 	n := len(b)
-	d := make([]int, (m+1)*(n+1))
 
-	get := func(i, j int) int {
-		return d[i+j*m]
-	}
-	set := func(i, j, to int) {
-		d[i+j*m] = to
+	column := make([]int, m+1)
+	for y := range column {
+		column[y] = y
 	}
 
-	for i := 0; i <= m; i++ {
-		set(i, 0, i)
-	}
-	for j := 0; j < n; j++ {
-		set(0, j, j)
-	}
-	for j := 1; j <= n; j++ {
-		for i := 1; i <= m; i++ {
-			if a[i-1] == b[j-1] {
-				set(i, j, get(i-1, j-1))
-			} else {
-				set(i, j, min(
-					get(i-1, j)+1,
-					get(i, j-1)+1,
-					get(i-1, j-1)+1,
-				))
+	for x := 1; x <= n; x++ {
+		column[0] = x
+		lastkey := x - 1
+		for y := 1; y <= m; y++ {
+			oldkey := column[y]
+			var inc int
+			if a[y-1] != b[x-1] {
+				inc = 1
 			}
+			column[y] = min(column[y]+1, column[y-1]+1, lastkey+inc)
+			lastkey = oldkey
 		}
 	}
 
-	return get(m, n)
+	return column[m]
 }
 
 func min(a int, b ...int) int {
