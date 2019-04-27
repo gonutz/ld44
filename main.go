@@ -3,8 +3,10 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gonutz/w32"
 	"github.com/gonutz/wui"
@@ -19,8 +21,12 @@ const (
 )
 
 func main() {
-	//os.Args = append(os.Args, decryptFlag) // TODO remove debug code
-	//os.Args = append(os.Args, uninstallFlag) // TODO remove debug code
+	// TODO remove this debug code
+	//os.Args = append(os.Args, decryptFlag)
+	//os.Args = append(os.Args, uninstallFlag)
+	//showDecryptionProgress(nil)
+	//return
+	// TODO remove the above debug code
 
 	if len(os.Args) >= 2 && os.Args[1] == uninstallFlag {
 		uninstall()
@@ -119,6 +125,22 @@ func decryptor() {
 		window.ClientHeight()-10-ok.Height(),
 	)
 	ok.SetOnClick(func() {
+		haveLogPath := strings.ToLower(path.Clean(filepath.ToSlash(logPath.Text())))
+		wantLogPath := strings.ToLower(filepath.ToSlash(encryptedLogPath()))
+		if haveLogPath != wantLogPath {
+			wui.MessageBoxError("Error", "Invalid log file. "+
+				"Please make sure the encrypted log path is correct and that the file is not corrupted.")
+			return
+		}
+
+		showDecryptionProgress(window)
+
+		if pw.Text() != logPassword {
+			wui.MessageBoxError("Error", "Wrong password.")
+			return
+		}
+
+		// success
 		wui.MessageBoxError("TODO", "Implement more game here")
 		window.Close()
 	})
@@ -135,4 +157,45 @@ func decryptor() {
 	})
 
 	window.Show()
+}
+
+func showDecryptionProgress(parent *wui.Window) {
+	const maxProgress = 250
+	dlg := wui.NewDialogWindow()
+	dlg.SetClientSize(maxProgress, 25)
+	dlg.SetTitle("Decrypting...")
+
+	progress := 0
+
+	p := wui.NewPaintbox()
+	p.SetBounds(dlg.ClientBounds())
+	p.SetOnPaint(func(c *wui.Canvas) {
+		c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(0, 192, 0))
+		c.FillRect(progress, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
+	})
+	dlg.Add(p)
+
+	start := make(chan bool, 1)
+	go func() {
+		<-start
+		time.Sleep(250 * time.Millisecond)
+		for i := 0; i <= maxProgress; i++ {
+			progress = i
+			p.Paint()
+			time.Sleep(8 * time.Millisecond)
+		}
+		time.Sleep(100 * time.Millisecond)
+		dlg.Close()
+	}()
+
+	dlg.SetOnCanClose(func() bool { return progress >= maxProgress })
+	dlg.SetOnShow(func() {
+		if parent != nil {
+			x, y, w, h := parent.Bounds()
+			dlgW, dlgH := dlg.Size()
+			dlg.SetPos(x+(w-dlgW)/2, y+(h-dlgH)/2)
+		}
+		start <- true
+	})
+	dlg.ShowModal()
 }
