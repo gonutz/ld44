@@ -9,6 +9,8 @@ ico main-icon.png main-icon.ico
 if errorlevel 1 (pause & exit)
 rsrc -ico main-icon.ico -arch=386 -o=rsrc_386.syso
 if errorlevel 1 (pause & exit)
+bin2go -var=mainIcon < main-icon.ico > mainIcon.go
+if errorlevel 1 (pause & exit)
 
 ico decrypt-icon.png decrypt-icon.ico
 if errorlevel 1 (pause & exit)
