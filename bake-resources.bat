@@ -21,3 +21,6 @@ ico fix-graphics-icon.png fix-graphics-icon.ico
 if errorlevel 1 (pause & exit)
 bin2go -var=fixGraphicsIcon < fix-graphics-icon.ico > fixGraphicsIcon.go
 if errorlevel 1 (pause & exit)
+
+bin2go -var=menuBackground < menu-background.png > menuBackground.go
+if errorlevel 1 (pause & exit)

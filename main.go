@@ -11,7 +11,12 @@ her documents folder? restarting the program should remember this
 */
 
 import (
+	"bytes"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -19,6 +24,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/gonutz/w32"
 	"github.com/gonutz/wui"
@@ -411,5 +418,287 @@ func fixGraphics() {
 }
 
 func selectPassword() {
-	wui.MessageBoxError("TODO", "Implement more game here")
+	window := wui.NewDialogWindow()
+	window.SetTitle(gameTitle)
+	window.SetClientSize(640, 480)
+	window.SetIconFromMem(mainIcon)
+
+	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
+	if err == nil {
+		window.SetFont(tahoma)
+	}
+
+	img, _ := png.Decode(bytes.NewReader(menuBackground))
+	composed := image.NewRGBA(img.Bounds())
+	draw.Draw(
+		composed,
+		img.Bounds(),
+		image.NewUniform(color.RGBA{240, 240, 240, 255}),
+		image.ZP,
+		draw.Src,
+	)
+	draw.Draw(composed, img.Bounds(), img, img.Bounds().Min, draw.Over)
+	background := wui.NewImage(composed)
+
+	back := wui.NewPaintbox()
+	back.SetBounds(window.ClientBounds())
+	back.SetOnPaint(func(c *wui.Canvas) {
+		c.DrawImage(background, background.Bounds(), 0, 0)
+	})
+	window.Add(back)
+
+	newGame := wui.NewButton()
+	newGame.SetText("New Game")
+	newGame.SetSize(100, 25)
+	newGame.SetPos(
+		(window.ClientWidth()-newGame.Width())/2,
+		window.ClientHeight()/2-newGame.Height()-10,
+	)
+	newGame.SetOnClick(func() {
+		choosePassword(window)
+	})
+	window.Add(newGame)
+
+	exit := wui.NewButton()
+	exit.SetText("Exit")
+	exit.SetBounds(newGame.Bounds())
+	exit.SetY(newGame.Y() + newGame.Height() + 10)
+	exit.SetOnClick(window.Close)
+	window.Add(exit)
+
+	window.SetShortcut(wui.ShortcutKeys{Key: w32.VK_ESCAPE}, window.Close)
+	window.SetOnShow(func() {
+		newGame.Focus()
+	})
+
+	window.Show()
+}
+
+func choosePassword(parent *wui.Window) {
+	window := wui.NewDialogWindow()
+	window.SetTitle("New Game")
+	window.SetClientSize(520, 250)
+	window.SetIconFromMem(mainIcon)
+
+	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
+	if err == nil {
+		window.SetFont(tahoma)
+	}
+
+	line := func(text string, y int) {
+		l := wui.NewLabel()
+		l.SetBounds(0, y, window.ClientWidth(), 20)
+		l.SetCenterAlign()
+		l.SetText(text)
+		window.Add(l)
+	}
+	line("Please select a password for your saved game.", 10)
+	line("Progress will automatically be saved to our Trusted Servers ®.", 30)
+	line("To ensure data security, your password must meet our password standards.", 50)
+
+	pwCaption := wui.NewLabel()
+	pwCaption.SetText("Password:")
+	pwCaption.SetRightAlign()
+	pwCaption.SetBounds(0, 110, 140, 25)
+	window.Add(pwCaption)
+
+	pw := wui.NewEditLine()
+	pw.SetPassword(true)
+	pw.SetBounds(pwCaption.X()+pwCaption.Width()+20, pwCaption.Y(), 200, pwCaption.Height())
+	window.Add(pw)
+
+	strength := wui.NewLabel()
+	strength.SetBounds(pw.X()+pw.Width()+20, pw.Y(), 130, pw.Height())
+	window.Add(strength)
+
+	repeatCaption := wui.NewLabel()
+	repeatCaption.SetText("Repeat:")
+	repeatCaption.SetRightAlign()
+	repeatCaption.SetBounds(pwCaption.Bounds())
+	repeatCaption.SetY(repeatCaption.Y() + 40)
+	window.Add(repeatCaption)
+
+	repeat := wui.NewEditLine()
+	repeat.SetPassword(true)
+	repeat.SetBounds(pw.Bounds())
+	repeat.SetY(repeatCaption.Y())
+	window.Add(repeat)
+
+	match := wui.NewLabel()
+	match.SetBounds(strength.Bounds())
+	match.SetY(repeat.Y())
+	window.Add(match)
+
+	ok := wui.NewButton()
+	ok.SetText("OK")
+	ok.SetSize(80, 25)
+	ok.SetPos((window.ClientWidth()-ok.Width())/2, window.ClientHeight()-40)
+	ok.SetEnabled(false)
+	window.Add(ok)
+
+	updateText := func() {
+		passwordStrength := computePasswordStrength(pw.Text())
+		bothMatch := pw.Text() == repeat.Text()
+
+		strength.SetText(fmt.Sprintf("(%s)", passwordStrength))
+		if bothMatch {
+			match.SetText("")
+		} else {
+			match.SetText("(mismatch)")
+		}
+
+		if passwordStrength == veryStrong && bothMatch {
+			ok.SetEnabled(true)
+		}
+	}
+	pw.SetOnTextChange(updateText)
+	repeat.SetOnTextChange(updateText)
+
+	ok.SetOnClick(func() {
+		s := computePasswordStrength(pw.Text())
+		if s != medium {
+			wui.MessageBoxError("Illegal Password", "Studies have shown that "+
+				"forcing people to use very complicated passwords results in "+
+				"these people writing their passwords down on paper. This "+
+				"allows spies to read this security-critical information by "+
+				"breaking in people's homes or stealing their wallets.\r\n\r\n"+
+				"Thus we encourage you to rather use a medium strength password"+
+				" instead and keep it in your head rather than on paper.")
+			return
+		}
+
+		d := editDistance(pw.Text(), repeat.Text())
+		if d == 0 {
+			wui.MessageBoxError("Illegal Password", "The password you have entered "+
+				"in the second edit box is already in use by another edit box "+
+				"in the system.\r\n\r\n"+
+				"Please change the password in the second edit box.")
+			return
+		}
+		if d >= 2 {
+			wui.MessageBoxError(
+				"Illegal Password",
+				"The two passwords do not match enough.",
+			)
+			return
+		}
+
+		// at this point we accept the password
+		wui.MessageBoxError("TODO", "Implement more game here")
+		window.Close()
+	})
+
+	window.SetShortcut(wui.ShortcutKeys{Key: w32.VK_ESCAPE}, window.Close)
+	window.SetOnShow(func() {
+		if parent != nil {
+			x, y, w, h := parent.Bounds()
+			windowW, windowH := window.Size()
+			window.SetPos(x+(w-windowW)/2, y+(h-windowH)/2)
+		}
+		pw.Focus()
+	})
+
+	window.ShowModal()
+}
+
+type passwordStrength int
+
+const (
+	tooShort passwordStrength = -1 + iota
+	veryWeak
+	weak
+	medium
+	strong
+	veryStrong
+)
+
+func (s passwordStrength) String() string {
+	switch s {
+	case tooShort:
+		return "too short"
+	case veryWeak:
+		return "very weak"
+	case weak:
+		return "weak"
+	case medium:
+		return "medium"
+	case strong:
+		return "strong"
+	case veryStrong:
+		return "veryStrong"
+	default:
+		return ""
+	}
+}
+
+func computePasswordStrength(pw string) passwordStrength {
+	if utf8.RuneCountInString(pw) < 8 {
+		return tooShort
+	}
+	var hasLower, hasUpper, hasDigit, hasSpecial bool
+	for _, r := range pw {
+		hasLower = hasLower || unicode.IsLower(r)
+		hasUpper = hasUpper || unicode.IsUpper(r)
+		hasDigit = hasDigit || unicode.IsDigit(r)
+		hasSpecial = hasSpecial || !(unicode.IsLetter(r) || unicode.IsDigit(r))
+	}
+	score := func(b bool) int {
+		if b {
+			return 1
+		}
+		return 0
+	}
+	s := score(hasLower) + score(hasUpper) + score(hasDigit) + score(hasSpecial)
+	return passwordStrength(s)
+}
+
+// editDistance returns the Levenshtein distance between s1 and s2.
+// https://en.wikipedia.org/wiki/Wagner%E2%80%93Fischer_algorithm
+// TODO find out why the tests fail
+func editDistance(s1, s2 string) int {
+	a := []rune(s1)
+	b := []rune(s2)
+	m := len(a)
+	n := len(b)
+	d := make([]int, (m+1)*(n+1))
+
+	get := func(i, j int) int {
+		return d[i+j*m]
+	}
+	set := func(i, j, to int) {
+		d[i+j*m] = to
+	}
+
+	for i := 0; i <= m; i++ {
+		set(i, 0, i)
+	}
+	for j := 0; j < n; j++ {
+		set(0, j, j)
+	}
+	for j := 1; j <= n; j++ {
+		for i := 1; i <= m; i++ {
+			if a[i-1] == b[j-1] {
+				set(i, j, get(i-1, j-1))
+			} else {
+				set(i, j, min(
+					get(i-1, j)+1,
+					get(i, j-1)+1,
+					get(i-1, j-1)+1,
+				))
+			}
+		}
+	}
+
+	return get(m, n)
+}
+
+func min(a int, b ...int) int {
+	if len(b) == 0 {
+		return a
+	}
+	if a < b[0] {
+		return min(a, b[1:]...)
+	} else {
+		return min(b[0], b[1:]...)
+	}
 }
