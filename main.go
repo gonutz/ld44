@@ -631,7 +631,7 @@ func (s passwordStrength) String() string {
 	case strong:
 		return "strong"
 	case veryStrong:
-		return "veryStrong"
+		return "very strong"
 	default:
 		return ""
 	}
