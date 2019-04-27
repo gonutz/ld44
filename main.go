@@ -1,15 +1,5 @@
 package main
 
-/*
-TODOs
-
-if the user enters the wrong password over and over again, give her a hint to
-look in the encrypted log file itself.
-
-what if the user misses the dialog that tells her to look through the logs in
-her documents folder? restarting the program should remember this
-*/
-
 import (
 	"bytes"
 	"fmt"
@@ -59,14 +49,14 @@ func main() {
 		createDesktopLog()
 	} else if len(os.Args) > 2 {
 		wui.MessageBoxError("Error", "Too many arguments.")
-	} else if os.Args[1] == uninstallFlag {
-		uninstall()
-	} else if os.Args[1] == fixGraphicsFlag {
-		fixGraphics()
 	} else if os.Args[1] == decryptFlag {
 		decrypt()
+	} else if os.Args[1] == fixGraphicsFlag {
+		fixGraphics()
 	} else if os.Args[1] == gammaFlag {
 		selectPassword()
+	} else if os.Args[1] == uninstallFlag {
+		uninstall()
 	} else {
 		wui.MessageBoxError("Invalid Argument", "Unknown flag '"+os.Args[1]+"'.")
 	}
@@ -130,7 +120,7 @@ func documentsPath() string {
 
 func decrypt() {
 	window := wui.NewDialogWindow()
-	window.SetClientSize(700, 220)
+	window.SetClientSize(700, 250)
 	window.SetTitle(`"` + gameTitle + `"` + " Log File Decryptor")
 	window.SetIconFromMem(decryptIcon)
 
@@ -178,6 +168,22 @@ func decrypt() {
 	pw.SetPassword(true)
 	pw.SetBounds(10, 115, window.ClientWidth()-20, 25)
 	window.Add(pw)
+
+	autoExtract := wui.NewButton()
+	autoExtract.SetText("Auto-Extract Password")
+	autoExtract.SetBounds(window.ClientWidth()/2-80, 150, 160, 25)
+	autoExtract.SetVisible(false)
+	window.Add(autoExtract)
+	autoExtract.SetOnClick(func() {
+		showProgress("Extracting...", window)
+		wui.MessageBoxError("Error", "Unable to automatically extract password from\r\n\r\n"+
+			"    \""+logPath.Text()+"\"    \r\n\r\n"+
+			"Please open the file in a text editor and extract the password manually.")
+	})
+
+	logPath.SetOnTextChange(func() {
+		autoExtract.SetVisible(strings.TrimSpace(logPath.Text()) != "")
+	})
 
 	ok := wui.NewButton()
 	ok.SetText("OK")
