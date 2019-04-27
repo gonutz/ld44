@@ -34,15 +34,6 @@ const (
 )
 
 func main() {
-	// TODO remove this debug code
-	//os.Args = append(os.Args, decryptFlag)
-	//os.Args = append(os.Args, uninstallFlag)
-	//showDecryptionProgress(nil)
-	//return
-	//os.Args = append(os.Args, fixGraphicsFlag)
-	//os.Args = append(os.Args, gammaFlag)
-	// TODO remove the above debug code
-
 	rand.Seed(time.Now().UnixNano())
 
 	if len(os.Args) == 1 {
