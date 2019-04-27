@@ -206,13 +206,13 @@ func decrypt() {
 					if rand.Intn(2) == 0 {
 						nutshellImageIndex++
 						return fmt.Sprintf(
-							"loading 'nutshell_%017d.png'... OK\r\n",
+							"loading image 'nutshell_%011d.png'... OK\r\n",
 							nutshellImageIndex,
 						)
 					}
 					computerImageIndex++
 					return fmt.Sprintf(
-						"loading 'computer_%017d.png'... OK\r\n",
+						"loading image 'computer_%011d.png'... OK\r\n",
 						computerImageIndex,
 					)
 				}
@@ -238,7 +238,12 @@ func decrypt() {
 			return
 		}
 
-		wui.MessageBoxInfo("Log File Decrypted", "TODO: include this text: For easier human consumption the clear text log was split into multiple files to make sure no file is too large for your text editor.")
+		wui.MessageBoxInfo("Log File Decrypted", "The log file was decrypted successfully.\r\n\r\n"+
+			"For easier human consumption the clear text log was split into "+
+			"multiple files to make sure no file is too large for viewing in a"+
+			" text editor.\r\n\r\n"+
+			"You can find all log files in your Documents folder:\r\n\r\n"+
+			"    "+documentsPath()+"    ")
 		window.Close()
 	})
 	window.Add(ok)
