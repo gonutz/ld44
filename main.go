@@ -335,7 +335,10 @@ func fixGraphics() {
 	line("Please select the square that appears brightest to you", 30)
 
 	hotX, hotY := -1, -1 // tile under mouse
-	lightX, lightY := 1+rand.Intn(tileCountX-2), 1+rand.Intn(tileCountY-2)
+	randTile := func() (x, y int) {
+		return 1 + rand.Intn(tileCountX-2), 1 + rand.Intn(tileCountY-2)
+	}
+	lightX, lightY := randTile()
 	p := wui.NewPaintbox()
 	p.SetBounds(0, yOffset, tileCountX*tileSize+1, tileCountY*tileSize+1)
 	p.SetOnPaint(func(c *wui.Canvas) {
@@ -365,12 +368,20 @@ func fixGraphics() {
 		p.Paint()
 	})
 	window.SetOnMouseDown(func(b wui.MouseButton, x, y int) {
-		if hotX == lightX && hotY == lightY {
-			hotX, hotY = -1, -1
-			p.Paint()
-			showProgress("Calibrating...", window)
+		if hotX < 0 || hotX >= tileCountX || hotY < 0 || hotY >= tileCountY {
+			return
+		}
+		correct := hotX == lightX && hotY == lightY
+		hotX, hotY = -1, -1
+		p.Paint()
+		showProgress("Calibrating...", window)
+		lightX, lightY = randTile()
+		p.Paint()
+		if correct {
 			wui.MessageBoxError("TODO", "Implement more game here")
 			window.Close()
+		} else {
+			wui.MessageBoxError("Error", "Inconsistent gamma settings detected, please repeat the last step.")
 		}
 	})
 
