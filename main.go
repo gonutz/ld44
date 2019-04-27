@@ -32,7 +32,7 @@ func createDesktopLog() {
 		"Please see the encrypted log file on your Desktop for more information.\r\n\r\n"+
 		"    "+logPath+"    \r\n\r\n"+
 		"To decrypt the file please use this application with flag --decrypt-log\r\n\r\n"+
-		"    "+filepath.Base(os.Args[0])+" --decrypt-log    ")
+		"    \""+filepath.Base(os.Args[0])+"\" --decrypt-log    ")
 }
 
 func desktopPath() string {
