@@ -32,6 +32,8 @@ const (
 	uninstallFlag          = "--uninstall"
 	clearLogFileNameFormat = "computers_in_a_nutshell_%05d.log"
 	fixGraphicsFlag        = "--fix-graphics"
+	gammaValues            = "offset 1.72, exponent -0.247, ramp-up 7"
+	gammaFlag              = "--gamma=1.72,-0.246,7"
 )
 
 func main() {
@@ -41,18 +43,25 @@ func main() {
 	//showDecryptionProgress(nil)
 	//return
 	//os.Args = append(os.Args, fixGraphicsFlag)
+	//os.Args = append(os.Args, gammaFlag)
 	// TODO remove the above debug code
 
 	rand.Seed(time.Now().UnixNano())
 
-	if len(os.Args) >= 2 && os.Args[1] == uninstallFlag {
-		uninstall()
-	} else if len(os.Args) >= 2 && os.Args[1] == fixGraphicsFlag {
-		fixGraphics()
-	} else if len(os.Args) >= 2 && os.Args[1] == decryptFlag {
-		decrypt()
-	} else {
+	if len(os.Args) == 1 {
 		createDesktopLog()
+	} else if len(os.Args) > 2 {
+		wui.MessageBoxError("Error", "Too many arguments.")
+	} else if os.Args[1] == uninstallFlag {
+		uninstall()
+	} else if os.Args[1] == fixGraphicsFlag {
+		fixGraphics()
+	} else if os.Args[1] == decryptFlag {
+		decrypt()
+	} else if os.Args[1] == gammaFlag {
+		selectPassword()
+	} else {
+		wui.MessageBoxError("Invalid Argument", "Unknown flag '"+os.Args[1]+"'.")
 	}
 }
 
@@ -313,6 +322,12 @@ func fixGraphics() {
 		tileCountY = 10
 		yOffset    = 60
 	)
+	lightColors := []wui.Color{
+		wui.RGB(50, 50, 50),
+		wui.RGB(30, 30, 30),
+		wui.RGB(10, 10, 10),
+		wui.RGB(0, 1, 0),
+	}
 
 	window := wui.NewDialogWindow()
 	window.SetTitle(gameTitle + " - Diagnostics")
@@ -352,7 +367,7 @@ func fixGraphics() {
 			borderY := y * tileSize
 			c.Line(0, borderY, c.Width(), borderY, border)
 		}
-		c.FillRect(lightX*tileSize+1, lightY*tileSize+1, tileSize-1, tileSize-1, wui.RGB(20, 20, 20))
+		c.FillRect(lightX*tileSize+1, lightY*tileSize+1, tileSize-1, tileSize-1, lightColors[0])
 		if hotX >= 0 && hotX < tileCountX && hotY >= 0 && hotY < tileCountY {
 			c.DrawRect(hotX*tileSize, hotY*tileSize, tileSize+1, tileSize+1, wui.RGB(0, 192, 0))
 		}
@@ -378,12 +393,23 @@ func fixGraphics() {
 		lightX, lightY = randTile()
 		p.Paint()
 		if correct {
-			wui.MessageBoxError("TODO", "Implement more game here")
-			window.Close()
+			if len(lightColors) == 1 {
+				wui.MessageBoxInfo("Success", "The following gamma settings were detected:\r\n\r\n"+
+					"    "+gammaValues+"    \r\n\r\n"+
+					"Please restart the game with these parameters:\r\n\r\n"+
+					"    \""+filepath.Base(os.Args[0])+"\" "+gammaFlag+"    ")
+				window.Close()
+				return
+			}
+			lightColors = lightColors[1:]
 		} else {
 			wui.MessageBoxError("Error", "Inconsistent gamma settings detected, please repeat the last step.")
 		}
 	})
 
 	window.Show()
+}
+
+func selectPassword() {
+	wui.MessageBoxError("TODO", "Implement more game here")
 }
