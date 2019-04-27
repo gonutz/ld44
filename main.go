@@ -43,6 +43,8 @@ func main() {
 	//os.Args = append(os.Args, fixGraphicsFlag)
 	// TODO remove the above debug code
 
+	rand.Seed(time.Now().UnixNano())
+
 	if len(os.Args) >= 2 && os.Args[1] == uninstallFlag {
 		uninstall()
 	} else if len(os.Args) >= 2 && os.Args[1] == fixGraphicsFlag {
@@ -74,7 +76,7 @@ func createDesktopLog() {
 	logText := n("\r\n", 1000) + n(" ", 1000) + logPassword + n(" ", 1000) + n("\r\n", 1000)
 	ioutil.WriteFile(logPath, []byte(logText), 0666)
 
-	window := wui.NewWindow()
+	window := wui.NewDialogWindow()
 	window.SetTitle(gameTitle)
 	window.SetIconFromMem(mainIcon)
 	window.SetClientSize(640, 480)
@@ -229,7 +231,7 @@ func decrypt() {
 			}()
 		}
 
-		showDecryptionProgress(window)
+		showProgress("Decrypting...", window)
 
 		if !correctPassword {
 			wui.MessageBoxError("Error", "Wrong password.")
@@ -256,11 +258,11 @@ func decrypt() {
 
 // showDecryptionProgress opens a modal window, slowly fills it with a progress
 // bar, then closes it.
-func showDecryptionProgress(parent *wui.Window) {
+func showProgress(title string, parent *wui.Window) {
 	const maxProgress = 250
 	dlg := wui.NewDialogWindow()
 	dlg.SetClientSize(maxProgress, 25)
-	dlg.SetTitle("Decrypting...")
+	dlg.SetTitle(title)
 
 	progress := 0
 
@@ -298,10 +300,74 @@ func showDecryptionProgress(parent *wui.Window) {
 }
 
 func fixGraphics() {
-	go removeClearTextLogs()
-	window := wui.NewWindow()
+	go removeClearTextLogs() // log stage clear - delete the many log files
+
+	const (
+		tileSize   = 40
+		tileCountX = 15
+		tileCountY = 10
+		yOffset    = 60
+	)
+
+	window := wui.NewDialogWindow()
 	window.SetTitle(gameTitle + " - Diagnostics")
-	window.SetClientSize(640, 480)
+	window.SetClientSize(tileCountX*tileSize+1, yOffset+tileCountY*tileSize+1)
 	window.SetIconFromMem(fixGraphicsIcon)
+
+	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
+	if err == nil {
+		window.SetFont(tahoma)
+	}
+
+	line := func(text string, y int) {
+		l := wui.NewLabel()
+		l.SetBounds(0, y, window.ClientWidth(), 20)
+		l.SetCenterAlign()
+		l.SetText(text)
+		window.Add(l)
+	}
+	line("Gamma Correction Calibration", 10)
+	line("Please select the square that appears brightest to you", 30)
+
+	hotX, hotY := -1, -1 // tile under mouse
+	lightX, lightY := 1+rand.Intn(tileCountX-2), 1+rand.Intn(tileCountY-2)
+	p := wui.NewPaintbox()
+	p.SetBounds(0, yOffset, tileCountX*tileSize+1, tileCountY*tileSize+1)
+	p.SetOnPaint(func(c *wui.Canvas) {
+		c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(0, 0, 0))
+		border := wui.RGB(192, 192, 192)
+		for x := 0; x < tileCountX+1; x++ {
+			borderX := x * tileSize
+			c.Line(borderX, 0, borderX, c.Height(), border)
+		}
+		for y := 0; y < tileCountY+1; y++ {
+			borderY := y * tileSize
+			c.Line(0, borderY, c.Width(), borderY, border)
+		}
+		c.FillRect(lightX*tileSize+1, lightY*tileSize+1, tileSize-1, tileSize-1, wui.RGB(20, 20, 20))
+		if hotX >= 0 && hotX < tileCountX && hotY >= 0 && hotY < tileCountY {
+			c.DrawRect(hotX*tileSize, hotY*tileSize, tileSize+1, tileSize+1, wui.RGB(0, 192, 0))
+		}
+	})
+	window.Add(p)
+	window.SetOnMouseMove(func(x, y int) {
+		y -= yOffset
+		if y < 0 {
+			hotX, hotY = -1, -1
+		} else {
+			hotX, hotY = x/tileSize, y/tileSize
+		}
+		p.Paint()
+	})
+	window.SetOnMouseDown(func(b wui.MouseButton, x, y int) {
+		if hotX == lightX && hotY == lightY {
+			hotX, hotY = -1, -1
+			p.Paint()
+			showProgress("Calibrating...", window)
+			wui.MessageBoxError("TODO", "Implement more game here")
+			window.Close()
+		}
+	})
+
 	window.Show()
 }
