@@ -802,7 +802,7 @@ func playGame() {
 			c.SetFont(largeFont)
 			c.TextRectFormat(
 				0, 0, c.Width(), c.Height()/3*2,
-				"Winner, Winner, and so on!",
+				"Well done!",
 				wui.FormatCenter, wui.RGB(0, 0, 0),
 			)
 			c.SetFont(tahoma)
@@ -811,6 +811,11 @@ func playGame() {
 				"Click to continue",
 				wui.FormatCenter, wui.RGB(92, 92, 92),
 			)
+			nutshellX := c.Width() - nutshell.Width() - 10
+			nutshellY := c.Height() - nutshell.Height() - 10
+			c.DrawImage(nutshell, nutshell.Bounds(), nutshellX, nutshellY)
+			c.DrawImage(pc, pc.Bounds(), pcX, pcY)
+			c.DrawImage(nutshellFront, nutshellFront.Bounds(), nutshellX, nutshellY)
 		} else if state == "rating" {
 			c.SetFont(largeFont)
 			c.TextRectFormat(
