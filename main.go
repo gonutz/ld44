@@ -945,7 +945,10 @@ func playGame() {
 				"much emphasis was put on compatibility, security and "+
 				"reliability so you got to enjoy a high quality game.\r\n\r\n"+
 				"Thanks for playing!\r\n\r\n"+
-				"- gonutz")
+				"- gonutz\r\n\r\n\r\n\r\n\r\n"+
+				"P.S. did you know that you can hit Ctrl+C in a "+
+				"Windows message box and it will save the text to clipboard? "+
+				"Go ahead, try it.")
 			window.Close()
 		}
 	})
