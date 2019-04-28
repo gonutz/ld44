@@ -31,6 +31,7 @@ const (
 	fixGraphicsFlag        = "--fix-graphics"
 	gammaValues            = "offset 1.72, exponent -0.247, ramp-up 7"
 	gammaFlag              = "--gamma=1.72,-0.246,7"
+	versionFlag            = "--version=0.0.12.43785634"
 )
 
 func main() {
@@ -46,6 +47,10 @@ func main() {
 		fixGraphics()
 	} else if os.Args[1] == gammaFlag {
 		selectPassword()
+	} else if os.Args[1] == versionFlag {
+		// TODO allow the gamma flag here as well? Generally think about what
+		// to do when multiple known flags are provided
+		playGame()
 	} else if os.Args[1] == uninstallFlag {
 		uninstall()
 	} else {
@@ -280,6 +285,7 @@ func decrypt() {
 func showProgress(title string, parent *wui.Window) {
 	const maxProgress = 250
 	dlg := wui.NewDialogWindow()
+	defer dlg.Destroy()
 	dlg.SetClientSize(maxProgress, 25)
 	dlg.SetTitle(title)
 
@@ -458,10 +464,7 @@ func selectPassword() {
 	)
 	newGame.SetOnClick(func() {
 		if choosePassword(window) {
-			wui.MessageBoxError("TODO", "Implement more game here\r\n\r\n"+
-				"Congratulations! You have made it this far without rage quitting!\r\n"+
-				"This qualifies you for playing the final game at the end of day 2.\r\n"+
-				"Come back and tell a friend about it :-)")
+			updateGame(window)
 		}
 	})
 	window.Add(newGame)
@@ -702,4 +705,30 @@ func min(a int, b ...int) int {
 	} else {
 		return min(b[0], b[1:]...)
 	}
+}
+
+func updateGame(parent *wui.Window) {
+	showProgress("Starting Game...", parent)
+	for !wui.MessageBoxYesNo(
+		"Important Update",
+		"You are using an outdated version of \""+gameTitle+
+			"\". A newer version is available for download.\r\n\r\n"+
+			"Do you want to update your game now?",
+	) {
+	}
+	showProgress("Downloading...", parent)
+	showProgress("Installing...", parent)
+	wui.MessageBoxInfo(
+		"Restart",
+		"Please restart the game with flag\r\n\r\n"+
+			"    "+versionFlag+"    \r\n\r\n"+
+			"Starting without this flag allows you to still use the previous "+
+			"version. Keeping all versions at all times provides you with the "+
+			"most control over your gaming experience.\r\n\r\n"+
+			"Thank you for playing \""+gameTitle+"\".",
+	)
+}
+
+func playGame() {
+	wui.MessageBoxError("TODO", "Implement more game here")
 }
