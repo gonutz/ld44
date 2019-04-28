@@ -47,8 +47,6 @@ func main() {
 	} else if os.Args[1] == gammaFlag {
 		selectPassword()
 	} else if os.Args[1] == versionFlag {
-		// TODO allow the gamma flag here as well? Generally think about what
-		// to do when multiple known flags are provided
 		playGame()
 	} else if os.Args[1] == uninstallFlag {
 		uninstall()
@@ -85,7 +83,7 @@ func createDesktopLog() {
 		wui.MessageBoxError("Error", "Unable to start \""+gameTitle+"\".\r\n"+
 			"Please see the log file on your Desktop for more information.\r\n\r\n"+
 			"    "+logPath+"    \r\n\r\n"+
-			"To protect your privacy the log file has been encrypted.\r\n\r\n"+
+			"To protect your privacy the log file has been encrypted.\r\n"+
 			"Decrypt the file using this application with flag "+decryptFlag+"\r\n\r\n"+
 			"    \""+filepath.Base(os.Args[0])+"\" "+decryptFlag+"    ")
 		window.Close()
@@ -555,6 +553,14 @@ func choosePassword(parent *wui.Window) (success bool) {
 
 	ok.SetOnClick(func() {
 		s := computePasswordStrength(pw.Text())
+		if s == tooShort {
+			wui.MessageBoxError("Illegal Password", "The password is too short.")
+			return
+		}
+		if s == veryWeak || s == weak {
+			wui.MessageBoxError("Illegal Password", "The password is too weak.")
+			return
+		}
 		if s != medium {
 			wui.MessageBoxError("Illegal Password", "Studies have shown that "+
 				"complicated passwords are often written down on paper. This "+
@@ -752,6 +758,7 @@ func playGame() {
 
 	autoSave := func() {
 		pcIsMoving = false
+		pcIsHot = false
 		showProgress("Auto-Save...", window)
 		wui.MessageBoxError(
 			"Error",
