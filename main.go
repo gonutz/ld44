@@ -3,9 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
-	"image/color"
-	"image/draw"
 	"image/png"
 	"io/ioutil"
 	"math/rand"
@@ -31,7 +28,8 @@ const (
 	fixGraphicsFlag        = "--fix-graphics"
 	gammaValues            = "offset 1.72, exponent -0.247, ramp-up 7"
 	gammaFlag              = "--gamma=1.72,-0.246,7"
-	versionFlag            = "--version=0.0.12.43785634"
+	updatedVersion         = "0.0.12.43785634"
+	versionFlag            = "--version=" + updatedVersion
 )
 
 func main() {
@@ -436,21 +434,11 @@ func selectPassword() {
 		window.SetFont(tahoma)
 	}
 
-	img, _ := png.Decode(bytes.NewReader(menuBackground))
-	composed := image.NewRGBA(img.Bounds())
-	draw.Draw(
-		composed,
-		img.Bounds(),
-		image.NewUniform(color.RGBA{240, 240, 240, 255}),
-		image.ZP,
-		draw.Src,
-	)
-	draw.Draw(composed, img.Bounds(), img, img.Bounds().Min, draw.Over)
-	background := wui.NewImage(composed)
-
+	background := makeImage(menuBackground)
 	back := wui.NewPaintbox()
 	back.SetBounds(window.ClientBounds())
 	back.SetOnPaint(func(c *wui.Canvas) {
+		c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
 		c.DrawImage(background, background.Bounds(), 0, 0)
 	})
 	window.Add(back)
@@ -730,5 +718,147 @@ func updateGame(parent *wui.Window) {
 }
 
 func playGame() {
-	wui.MessageBoxError("TODO", "Implement more game here")
+	window := wui.NewDialogWindow()
+	window.SetTitle(gameTitle + " - v" + updatedVersion)
+	window.SetClientSize(640, 480)
+	window.SetIconFromMem(mainIcon)
+
+	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
+	if err == nil {
+		window.SetFont(tahoma)
+	}
+
+	state := "menu"
+	var enterState func(s string)
+	pcX, pcY := 10, 10
+	pcIsHot := false
+	pcIsMoving := false
+	var pcMoveX, pcMoveY int
+
+	background := makeImage(menuBackground)
+	pc := makeImage(pcImage)
+	pcHot := makeImage(pcHot)
+	nutshell := makeImage(nutshellBack)
+	nutshellFront := makeImage(nutshellFront)
+
+	back := wui.NewPaintbox()
+	back.SetBounds(window.ClientBounds())
+	largeFont, _ := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -40})
+	back.SetOnPaint(func(c *wui.Canvas) {
+		if state == "menu" {
+			c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
+			c.DrawImage(background, background.Bounds(), 0, 0)
+		} else if state == "instructions" {
+			c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
+			c.SetFont(largeFont)
+			c.TextRectFormat(
+				0, 0, c.Width(), c.Height()/3*2,
+				"Put the Computer in the Nutshell",
+				wui.FormatCenter, wui.RGB(0, 0, 0),
+			)
+			go func() {
+				time.Sleep(2 * time.Second)
+				if state == "instructions" {
+					enterState("playing")
+				}
+			}()
+		} else if state == "playing" {
+			pc := pc
+			if pcIsHot && !pcIsMoving {
+				pc = pcHot
+			}
+			c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
+			c.DrawImage(
+				nutshell,
+				nutshell.Bounds(),
+				c.Width()-nutshell.Width()-10,
+				c.Height()-nutshell.Height()-10,
+			)
+			c.DrawImage(pc, pc.Bounds(), pcX, pcY)
+			c.DrawImage(
+				nutshellFront,
+				nutshellFront.Bounds(),
+				c.Width()-nutshellFront.Width()-10,
+				c.Height()-nutshellFront.Height()-10,
+			)
+		}
+	})
+	window.Add(back)
+
+	newGame := wui.NewButton()
+	newGame.SetText("Play")
+	newGame.SetSize(100, 25)
+	newGame.SetPos(
+		(window.ClientWidth()-newGame.Width())/2,
+		window.ClientHeight()/2-newGame.Height()-10,
+	)
+	window.Add(newGame)
+
+	exit := wui.NewButton()
+	exit.SetText("Exit")
+	exit.SetBounds(newGame.Bounds())
+	exit.SetY(newGame.Y() + newGame.Height() + 10)
+	exit.SetOnClick(window.Close)
+	window.Add(exit)
+
+	enterState = func(s string) {
+		state = s
+		if s == "menu" {
+			newGame.SetVisible(true)
+			exit.SetVisible(true)
+		}
+		if s == "instructions" {
+			newGame.SetVisible(false)
+			exit.SetVisible(false)
+		}
+		back.Paint()
+	}
+
+	newGame.SetOnClick(func() {
+		enterState("instructions")
+	})
+
+	window.SetOnMouseMove(func(x, y int) {
+		if state != "playing" {
+			return
+		}
+		if pcIsMoving {
+			dx, dy := x-pcMoveX, y-pcMoveY
+			pcX += dx
+			pcY += dy
+			pcMoveX, pcMoveY = x, y
+		}
+		pcIsHot = x >= pcX && x < pcX+pc.Width() && y >= pcY && y < pcY+pc.Height()
+		back.Paint()
+	})
+	window.SetOnMouseDown(func(button wui.MouseButton, x, y int) {
+		if button == wui.MouseButtonLeft && pcIsHot {
+			pcMoveX, pcMoveY = x, y
+			pcIsMoving = true
+			back.Paint()
+		}
+	})
+	window.SetOnMouseUp(func(button wui.MouseButton, x, y int) {
+		if button == wui.MouseButtonLeft {
+			pcIsMoving = false
+			back.Paint()
+		}
+	})
+	window.SetShortcut(wui.ShortcutKeys{Key: w32.VK_ESCAPE}, func() {
+		if state == "menu" {
+			window.Close()
+		} else {
+			enterState("menu")
+		}
+	})
+	window.SetOnShow(func() {
+		newGame.Focus()
+	})
+
+	window.Show()
+}
+
+func makeImage(pngData []byte) *wui.Image {
+	img, _ := png.Decode(bytes.NewReader(pngData))
+	return wui.NewImage(img)
 }

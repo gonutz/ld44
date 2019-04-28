@@ -24,3 +24,11 @@ if errorlevel 1 (pause & exit)
 
 bin2go -var=menuBackground < menu-background.png > menuBackground.go
 if errorlevel 1 (pause & exit)
+bin2go -var=pcImage < pc.png > pc.go
+if errorlevel 1 (pause & exit)
+bin2go -var=pcHot < pc-highlighted.png > pcHot.go
+if errorlevel 1 (pause & exit)
+bin2go -var=nutshellBack < nutshell.png > nutshellBack.go
+if errorlevel 1 (pause & exit)
+bin2go -var=nutshellFront < nutshell-front.png > nutshellFront.go
+if errorlevel 1 (pause & exit)
