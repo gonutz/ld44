@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/png"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"os"
 	"path"
@@ -731,10 +732,13 @@ func playGame() {
 	state := "menu"
 	var enterState func(s string)
 	pcX, pcY := 10, 10
+	overallPCMovement := 0.0
+	nextAutoSave := 0.0
 	pcIsHot := false
 	pcIsMoving := false
 	var pcMoveX, pcMoveY int
 	mouseX := 0
+
 	const starY = 200
 
 	background := makeImage(menuBackground)
@@ -745,6 +749,15 @@ func playGame() {
 	starEmpty := makeImage(emptyStar)
 	starHalf := makeImage(halfStar)
 	starFull := makeImage(fullStar)
+
+	autoSave := func() {
+		pcIsMoving = false
+		showProgress("Auto-Save...", window)
+		wui.MessageBoxError(
+			"Error",
+			"Unable to synchronize your save game with the server. Please try again later.",
+		)
+	}
 
 	back := wui.NewPaintbox()
 	back.SetBounds(window.ClientBounds())
@@ -880,7 +893,13 @@ func playGame() {
 				dx, dy := x-pcMoveX, y-pcMoveY
 				pcX += dx
 				pcY += dy
+				overallPCMovement += math.Sqrt(float64(dx*dx + dy*dy))
 				pcMoveX, pcMoveY = x, y
+				if overallPCMovement >= nextAutoSave {
+					back.Paint()
+					autoSave()
+					nextAutoSave = overallPCMovement + 20
+				}
 			}
 			pcIsHot = x >= pcX && x < pcX+pc.Width() && y >= pcY && y < pcY+pc.Height()
 			back.Paint()
