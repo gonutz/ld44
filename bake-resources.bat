@@ -32,3 +32,9 @@ bin2go -var=nutshellBack < nutshell.png > nutshellBack.go
 if errorlevel 1 (pause & exit)
 bin2go -var=nutshellFront < nutshell-front.png > nutshellFront.go
 if errorlevel 1 (pause & exit)
+bin2go -var=emptyStar < empty-star.png > emptyStar.go
+if errorlevel 1 (pause & exit)
+bin2go -var=halfStar < half-star.png > halfStar.go
+if errorlevel 1 (pause & exit)
+bin2go -var=fullStar < full-star.png > fullStar.go
+if errorlevel 1 (pause & exit)

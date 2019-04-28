@@ -734,12 +734,17 @@ func playGame() {
 	pcIsHot := false
 	pcIsMoving := false
 	var pcMoveX, pcMoveY int
+	mouseX := 0
+	const starY = 200
 
 	background := makeImage(menuBackground)
 	pc := makeImage(pcImage)
 	pcHot := makeImage(pcHot)
 	nutshell := makeImage(nutshellBack)
 	nutshellFront := makeImage(nutshellFront)
+	starEmpty := makeImage(emptyStar)
+	starHalf := makeImage(halfStar)
+	starFull := makeImage(fullStar)
 
 	back := wui.NewPaintbox()
 	back.SetBounds(window.ClientBounds())
@@ -755,12 +760,12 @@ func playGame() {
 				"Put the Computer in the Nutshell",
 				wui.FormatCenter, wui.RGB(0, 0, 0),
 			)
-			go func() {
-				time.Sleep(2 * time.Second)
-				if state == "instructions" {
-					enterState("playing")
-				}
-			}()
+			c.SetFont(tahoma)
+			c.TextRectFormat(
+				0, c.Height()/2, c.Width(), c.Height()/2,
+				"Click to continue",
+				wui.FormatCenter, wui.RGB(92, 92, 92),
+			)
 		} else if state == "playing" {
 			pc := pc
 			if pcIsHot && !pcIsMoving {
@@ -786,6 +791,51 @@ func playGame() {
 				0, 0, c.Width(), c.Height()/3*2,
 				"Winner, Winner, and so on!",
 				wui.FormatCenter, wui.RGB(0, 0, 0),
+			)
+			c.SetFont(tahoma)
+			c.TextRectFormat(
+				0, c.Height()/2, c.Width(), c.Height()/2,
+				"Click to continue",
+				wui.FormatCenter, wui.RGB(92, 92, 92),
+			)
+		} else if state == "rating" {
+			c.SetFont(largeFont)
+			c.TextRectFormat(
+				0, 0, c.Width(), c.Height()/2,
+				"Please rate the game",
+				wui.FormatCenter, wui.RGB(0, 0, 0),
+			)
+			for i := 0; i < 5; i++ {
+				x := 80 + i*100
+				star := starFull
+				if mouseX < x {
+					star = starEmpty
+				} else if mouseX < x+star.Width()/2 {
+					star = starHalf
+				}
+				c.DrawImage(star, star.Bounds(), x, starY)
+			}
+			c.SetFont(tahoma)
+			c.TextRectFormat(
+				0, c.Height()/2, c.Width(), c.Height()/2,
+				"Click to rate",
+				wui.FormatCenter, wui.RGB(92, 92, 92),
+			)
+		} else if state == "rated" {
+			c.SetFont(largeFont)
+			c.TextRectFormat(
+				0, 0, c.Width(), c.Height()/2,
+				"Thanks for the thumbs up!",
+				wui.FormatCenter, wui.RGB(0, 0, 0),
+			)
+			for i := 0; i < 5; i++ {
+				c.DrawImage(starFull, starFull.Bounds(), 80+i*100, starY)
+			}
+			c.SetFont(tahoma)
+			c.TextRectFormat(
+				0, c.Height()/2, c.Width(), c.Height()/2,
+				"Click to upload",
+				wui.FormatCenter, wui.RGB(92, 92, 92),
 			)
 		}
 	})
@@ -825,23 +875,47 @@ func playGame() {
 	})
 
 	window.SetOnMouseMove(func(x, y int) {
-		if state != "playing" {
-			return
+		if state == "playing" {
+			if pcIsMoving {
+				dx, dy := x-pcMoveX, y-pcMoveY
+				pcX += dx
+				pcY += dy
+				pcMoveX, pcMoveY = x, y
+			}
+			pcIsHot = x >= pcX && x < pcX+pc.Width() && y >= pcY && y < pcY+pc.Height()
+			back.Paint()
 		}
-		if pcIsMoving {
-			dx, dy := x-pcMoveX, y-pcMoveY
-			pcX += dx
-			pcY += dy
-			pcMoveX, pcMoveY = x, y
+		if state == "rating" {
+			mouseX = x
+			back.Paint()
 		}
-		pcIsHot = x >= pcX && x < pcX+pc.Width() && y >= pcY && y < pcY+pc.Height()
-		back.Paint()
 	})
 	window.SetOnMouseDown(func(button wui.MouseButton, x, y int) {
-		if button == wui.MouseButtonLeft && pcIsHot {
-			pcMoveX, pcMoveY = x, y
-			pcIsMoving = true
-			back.Paint()
+		if state == "instructions" {
+			enterState("playing")
+		} else if state == "won" {
+			enterState("rating")
+		} else if state == "playing" {
+			if button == wui.MouseButtonLeft && pcIsHot {
+				pcMoveX, pcMoveY = x, y
+				pcIsMoving = true
+				back.Paint()
+			}
+		} else if state == "rating" {
+			enterState("rated")
+		} else if state == "rated" {
+			showProgress("Uploading...", window)
+			wui.MessageBoxError("Error", "Failed to upload your rating.\r\n\r\n"+
+				"I hope you enjoyed the game. Judging from your rating "+
+				"you are eager to give this game a great review with a detailed "+
+				"comment on its Ludum Dare site\r\n\r\n"+
+				"    https://ldjam.com/events/ludum-dare/44/$141527    \r\n\r\n"+
+				"Remember that though the game might have been rather short, "+
+				"much emphasis was put on compatibility, security and "+
+				"reliability so you got to enjoy a high quality game.\r\n\r\n"+
+				"Thanks for playing!\r\n\r\n"+
+				"- gonutz")
+			window.Close()
 		}
 	})
 	window.SetOnMouseUp(func(button wui.MouseButton, x, y int) {
@@ -850,11 +924,7 @@ func playGame() {
 			back.Paint()
 		}
 	})
-	window.SetShortcut(wui.ShortcutKeys{Key: w32.VK_ESCAPE}, func() {
-		if state == "menu" {
-			window.Close()
-		}
-	})
+	window.SetShortcut(wui.ShortcutKeys{Key: w32.VK_ESCAPE}, window.Close)
 	window.SetOnShow(func() {
 		newGame.Focus()
 	})
