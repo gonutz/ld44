@@ -745,11 +745,10 @@ func playGame() {
 	back.SetBounds(window.ClientBounds())
 	largeFont, _ := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -40})
 	back.SetOnPaint(func(c *wui.Canvas) {
+		c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
 		if state == "menu" {
-			c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
 			c.DrawImage(background, background.Bounds(), 0, 0)
 		} else if state == "instructions" {
-			c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
 			c.SetFont(largeFont)
 			c.TextRectFormat(
 				0, 0, c.Width(), c.Height()/3*2,
@@ -767,19 +766,26 @@ func playGame() {
 			if pcIsHot && !pcIsMoving {
 				pc = pcHot
 			}
-			c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
-			c.DrawImage(
-				nutshell,
-				nutshell.Bounds(),
-				c.Width()-nutshell.Width()-10,
-				c.Height()-nutshell.Height()-10,
-			)
+			nutshellX := c.Width() - nutshell.Width() - 10
+			nutshellY := c.Height() - nutshell.Height() - 10
+			c.DrawImage(nutshell, nutshell.Bounds(), nutshellX, nutshellY)
 			c.DrawImage(pc, pc.Bounds(), pcX, pcY)
-			c.DrawImage(
-				nutshellFront,
-				nutshellFront.Bounds(),
-				c.Width()-nutshellFront.Width()-10,
-				c.Height()-nutshellFront.Height()-10,
+			c.DrawImage(nutshellFront, nutshellFront.Bounds(), nutshellX, nutshellY)
+
+			pcCenterX := pcX + pc.Width()/2
+			pcCenterY := pcY + pc.Height()/2
+			nutCenterX := nutshellX + nutshell.Width()/2
+			nutCenterY := nutshellY + nutshell.Height()/3
+			dx, dy := pcCenterX-nutCenterX, pcCenterY-nutCenterY
+			if dx*dx+dy*dy < 10*10 {
+				enterState("won")
+			}
+		} else if state == "won" {
+			c.SetFont(largeFont)
+			c.TextRectFormat(
+				0, 0, c.Width(), c.Height()/3*2,
+				"Winner, Winner, and so on!",
+				wui.FormatCenter, wui.RGB(0, 0, 0),
 			)
 		}
 	})
@@ -847,8 +853,6 @@ func playGame() {
 	window.SetShortcut(wui.ShortcutKeys{Key: w32.VK_ESCAPE}, func() {
 		if state == "menu" {
 			window.Close()
-		} else {
-			enterState("menu")
 		}
 	})
 	window.SetOnShow(func() {
