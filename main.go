@@ -76,9 +76,11 @@ func createDesktopLog() {
 	ioutil.WriteFile(logPath, []byte(logText), 0666)
 
 	window := wui.NewDialogWindow()
+	window.SetHasMaxButton(false)
 	window.SetTitle(gameTitle)
-	window.SetIconFromMem(mainIcon)
-	window.SetClientSize(640, 480)
+	icon, _ := wui.NewIconFromReader(bytes.NewReader(mainIcon))
+	window.SetIcon(icon)
+	window.SetInnerSize(640, 480)
 	window.SetOnShow(func() {
 		wui.MessageBoxError("Error", "Unable to start \""+gameTitle+"\".\r\n"+
 			"Please see the log file on your Desktop for more information.\r\n\r\n"+
@@ -113,9 +115,11 @@ func documentsPath() string {
 
 func decrypt() {
 	window := wui.NewDialogWindow()
-	window.SetClientSize(700, 250)
+	window.SetHasMaxButton(false)
+	window.SetInnerSize(700, 250)
 	window.SetTitle(`"` + gameTitle + `"` + " Log File Decryptor")
-	window.SetIconFromMem(decryptIcon)
+	icon, _ := wui.NewIconFromReader(bytes.NewReader(decryptIcon))
+	window.SetIcon(icon)
 
 	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
 	if err == nil {
@@ -123,8 +127,8 @@ func decrypt() {
 	}
 
 	logCaption := wui.NewLabel()
-	logCaption.SetCenterAlign()
-	logCaption.SetBounds(0, 20, window.ClientWidth(), 20)
+	logCaption.SetAlignment(wui.AlignCenter)
+	logCaption.SetBounds(0, 20, window.InnerWidth(), 20)
 	logCaption.SetText("Select the Log File to Decrypt")
 	window.Add(logCaption)
 
@@ -136,7 +140,7 @@ func decrypt() {
 	logPath := wui.NewEditLine()
 	logPath.SetX(selectLog.X() + selectLog.Width() + 5)
 	logPath.SetY(selectLog.Y())
-	logPath.SetWidth(window.ClientWidth() - 10 - logPath.X())
+	logPath.SetWidth(window.InnerWidth() - 10 - logPath.X())
 	logPath.SetHeight(selectLog.Height())
 	window.Add(logPath)
 
@@ -153,18 +157,18 @@ func decrypt() {
 
 	pwCaption := wui.NewLabel()
 	pwCaption.SetText("Please Enter Your Log File Password Here:")
-	pwCaption.SetCenterAlign()
-	pwCaption.SetBounds(0, 90, window.ClientWidth(), 20)
+	pwCaption.SetAlignment(wui.AlignCenter)
+	pwCaption.SetBounds(0, 90, window.InnerWidth(), 20)
 	window.Add(pwCaption)
 
 	pw := wui.NewEditLine()
-	pw.SetPassword(true)
-	pw.SetBounds(10, 115, window.ClientWidth()-20, 25)
+	pw.SetIsPassword(true)
+	pw.SetBounds(10, 115, window.InnerWidth()-20, 25)
 	window.Add(pw)
 
 	autoExtract := wui.NewButton()
 	autoExtract.SetText("Auto-Extract Password")
-	autoExtract.SetBounds(window.ClientWidth()/2-80, 150, 160, 25)
+	autoExtract.SetBounds(window.InnerWidth()/2-80, 150, 160, 25)
 	autoExtract.SetVisible(false)
 	window.Add(autoExtract)
 	autoExtract.SetOnClick(func() {
@@ -181,9 +185,9 @@ func decrypt() {
 	ok := wui.NewButton()
 	ok.SetText("OK")
 	ok.SetSize(80, 25)
-	ok.SetPos(
-		(window.ClientWidth()-ok.Width())/2,
-		window.ClientHeight()-10-ok.Height(),
+	ok.SetPosition(
+		(window.InnerWidth()-ok.Width())/2,
+		window.InnerHeight()-10-ok.Height(),
 	)
 	ok.SetOnClick(func() {
 		haveLogPath := strings.ToLower(path.Clean(filepath.ToSlash(logPath.Text())))
@@ -282,14 +286,16 @@ func decrypt() {
 func showProgress(title string, parent *wui.Window) {
 	const maxProgress = 250
 	dlg := wui.NewDialogWindow()
+	dlg.SetHasMinButton(false)
+	dlg.SetHasMaxButton(false)
 	defer dlg.Destroy()
-	dlg.SetClientSize(maxProgress, 25)
+	dlg.SetInnerSize(maxProgress, 25)
 	dlg.SetTitle(title)
 
 	progress := 0
 
-	p := wui.NewPaintbox()
-	p.SetBounds(dlg.ClientBounds())
+	p := wui.NewPaintBox()
+	p.SetSize(dlg.InnerSize())
 	p.SetOnPaint(func(c *wui.Canvas) {
 		c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(0, 192, 0))
 		c.FillRect(progress, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
@@ -314,7 +320,7 @@ func showProgress(title string, parent *wui.Window) {
 		if parent != nil {
 			x, y, w, h := parent.Bounds()
 			dlgW, dlgH := dlg.Size()
-			dlg.SetPos(x+(w-dlgW)/2, y+(h-dlgH)/2)
+			dlg.SetPosition(x+(w-dlgW)/2, y+(h-dlgH)/2)
 		}
 		start <- true
 	})
@@ -338,9 +344,11 @@ func fixGraphics() {
 	}
 
 	window := wui.NewDialogWindow()
+	window.SetHasMaxButton(false)
 	window.SetTitle(gameTitle + " - Diagnostics")
-	window.SetClientSize(tileCountX*tileSize+1, yOffset+tileCountY*tileSize+1)
-	window.SetIconFromMem(fixGraphicsIcon)
+	window.SetInnerSize(tileCountX*tileSize+1, yOffset+tileCountY*tileSize+1)
+	icon, _ := wui.NewIconFromReader(bytes.NewReader(fixGraphicsIcon))
+	window.SetIcon(icon)
 
 	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
 	if err == nil {
@@ -349,8 +357,8 @@ func fixGraphics() {
 
 	line := func(text string, y int) {
 		l := wui.NewLabel()
-		l.SetBounds(0, y, window.ClientWidth(), 20)
-		l.SetCenterAlign()
+		l.SetBounds(0, y, window.InnerWidth(), 20)
+		l.SetAlignment(wui.AlignCenter)
 		l.SetText(text)
 		window.Add(l)
 	}
@@ -362,7 +370,7 @@ func fixGraphics() {
 		return 1 + rand.Intn(tileCountX-2), 1 + rand.Intn(tileCountY-2)
 	}
 	lightX, lightY := randTile()
-	p := wui.NewPaintbox()
+	p := wui.NewPaintBox()
 	p.SetBounds(0, yOffset, tileCountX*tileSize+1, tileCountY*tileSize+1)
 	p.SetOnPaint(func(c *wui.Canvas) {
 		c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(0, 0, 0))
@@ -424,9 +432,11 @@ func fixGraphics() {
 
 func selectPassword() {
 	window := wui.NewDialogWindow()
+	window.SetHasMaxButton(false)
 	window.SetTitle(gameTitle)
-	window.SetClientSize(640, 480)
-	window.SetIconFromMem(mainIcon)
+	window.SetInnerSize(640, 480)
+	icon, _ := wui.NewIconFromReader(bytes.NewReader(mainIcon))
+	window.SetIcon(icon)
 
 	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
 	if err == nil {
@@ -434,8 +444,8 @@ func selectPassword() {
 	}
 
 	background := makeImage(menuBackground)
-	back := wui.NewPaintbox()
-	back.SetBounds(window.ClientBounds())
+	back := wui.NewPaintBox()
+	back.SetBounds(window.InnerBounds())
 	back.SetOnPaint(func(c *wui.Canvas) {
 		c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
 		c.DrawImage(background, background.Bounds(), 0, 0)
@@ -445,9 +455,9 @@ func selectPassword() {
 	newGame := wui.NewButton()
 	newGame.SetText("New Game")
 	newGame.SetSize(100, 25)
-	newGame.SetPos(
-		(window.ClientWidth()-newGame.Width())/2,
-		window.ClientHeight()/2-newGame.Height()-10,
+	newGame.SetPosition(
+		(window.InnerWidth()-newGame.Width())/2,
+		window.InnerHeight()/2-newGame.Height()-10,
 	)
 	newGame.SetOnClick(func() {
 		if choosePassword(window) {
@@ -473,9 +483,11 @@ func selectPassword() {
 
 func choosePassword(parent *wui.Window) (success bool) {
 	window := wui.NewDialogWindow()
+	window.SetHasMaxButton(false)
 	window.SetTitle("New Game")
-	window.SetClientSize(520, 250)
-	window.SetIconFromMem(mainIcon)
+	window.SetInnerSize(520, 250)
+	icon, _ := wui.NewIconFromReader(bytes.NewReader(mainIcon))
+	window.SetIcon(icon)
 
 	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
 	if err == nil {
@@ -484,8 +496,8 @@ func choosePassword(parent *wui.Window) (success bool) {
 
 	line := func(text string, y int) {
 		l := wui.NewLabel()
-		l.SetBounds(0, y, window.ClientWidth(), 20)
-		l.SetCenterAlign()
+		l.SetBounds(0, y, window.InnerWidth(), 20)
+		l.SetAlignment(wui.AlignCenter)
 		l.SetText(text)
 		window.Add(l)
 	}
@@ -495,12 +507,12 @@ func choosePassword(parent *wui.Window) (success bool) {
 
 	pwCaption := wui.NewLabel()
 	pwCaption.SetText("Password:")
-	pwCaption.SetRightAlign()
+	pwCaption.SetAlignment(wui.AlignRight)
 	pwCaption.SetBounds(0, 110, 140, 25)
 	window.Add(pwCaption)
 
 	pw := wui.NewEditLine()
-	pw.SetPassword(true)
+	pw.SetIsPassword(true)
 	pw.SetBounds(pwCaption.X()+pwCaption.Width()+20, pwCaption.Y(), 200, pwCaption.Height())
 	window.Add(pw)
 
@@ -510,13 +522,13 @@ func choosePassword(parent *wui.Window) (success bool) {
 
 	repeatCaption := wui.NewLabel()
 	repeatCaption.SetText("Repeat:")
-	repeatCaption.SetRightAlign()
+	repeatCaption.SetAlignment(wui.AlignRight)
 	repeatCaption.SetBounds(pwCaption.Bounds())
 	repeatCaption.SetY(repeatCaption.Y() + 40)
 	window.Add(repeatCaption)
 
 	repeat := wui.NewEditLine()
-	repeat.SetPassword(true)
+	repeat.SetIsPassword(true)
 	repeat.SetBounds(pw.Bounds())
 	repeat.SetY(repeatCaption.Y())
 	window.Add(repeat)
@@ -529,7 +541,7 @@ func choosePassword(parent *wui.Window) (success bool) {
 	ok := wui.NewButton()
 	ok.SetText("OK")
 	ok.SetSize(80, 25)
-	ok.SetPos((window.ClientWidth()-ok.Width())/2, window.ClientHeight()-40)
+	ok.SetPosition((window.InnerWidth()-ok.Width())/2, window.InnerHeight()-40)
 	ok.SetEnabled(false)
 	window.Add(ok)
 
@@ -600,7 +612,7 @@ func choosePassword(parent *wui.Window) (success bool) {
 		if parent != nil {
 			x, y, w, h := parent.Bounds()
 			windowW, windowH := window.Size()
-			window.SetPos(x+(w-windowW)/2, y+(h-windowH)/2)
+			window.SetPosition(x+(w-windowW)/2, y+(h-windowH)/2)
 		}
 		pw.Focus()
 	})
@@ -726,9 +738,11 @@ func updateGame(parent *wui.Window) {
 
 func playGame() {
 	window := wui.NewDialogWindow()
+	window.SetHasMaxButton(false)
 	window.SetTitle(gameTitle + " - v" + updatedVersion)
-	window.SetClientSize(640, 480)
-	window.SetIconFromMem(mainIcon)
+	window.SetInnerSize(640, 480)
+	icon, _ := wui.NewIconFromReader(bytes.NewReader(mainIcon))
+	window.SetIcon(icon)
 
 	tahoma, err := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -13})
 	if err == nil {
@@ -766,8 +780,8 @@ func playGame() {
 		)
 	}
 
-	back := wui.NewPaintbox()
-	back.SetBounds(window.ClientBounds())
+	back := wui.NewPaintBox()
+	back.SetSize(window.InnerSize())
 	largeFont, _ := wui.NewFont(wui.FontDesc{Name: "Tahoma", Height: -40})
 	back.SetOnPaint(func(c *wui.Canvas) {
 		c.FillRect(0, 0, c.Width(), c.Height(), wui.RGB(240, 240, 240))
@@ -869,9 +883,9 @@ func playGame() {
 	newGame := wui.NewButton()
 	newGame.SetText("Play")
 	newGame.SetSize(100, 25)
-	newGame.SetPos(
-		(window.ClientWidth()-newGame.Width())/2,
-		window.ClientHeight()/2-newGame.Height()-10,
+	newGame.SetPosition(
+		(window.InnerWidth()-newGame.Width())/2,
+		window.InnerHeight()/2-newGame.Height()-10,
 	)
 	window.Add(newGame)
 
